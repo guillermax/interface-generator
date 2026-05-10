@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Message } from '../types'
+import type { Message } from '../types'
 
 interface PreviewPanelProps {
   message: Message
@@ -18,6 +18,11 @@ export default function PreviewPanel({ message }: PreviewPanelProps) {
     <html>
     <head>
       <style>
+        html, body {
+          min-height: 100%;
+          margin: 0;
+          overflow: auto;
+        }
         ${css}
       </style>
     </head>
@@ -35,7 +40,7 @@ export default function PreviewPanel({ message }: PreviewPanelProps) {
           onClick={() => setActiveTab('code')}
           className={`px-4 py-3 font-semibold text-sm transition ${
             activeTab === 'code'
-              ? 'text-blue-500 border-b-2 border-blue-500'
+              ? 'text-sky-600 border-b-2 border-sky-600'
               : 'text-gray-600 hover:text-gray-800'
           }`}
         >
@@ -45,7 +50,7 @@ export default function PreviewPanel({ message }: PreviewPanelProps) {
           onClick={() => setActiveTab('preview')}
           className={`px-4 py-3 font-semibold text-sm transition ${
             activeTab === 'preview'
-              ? 'text-blue-500 border-b-2 border-blue-500'
+              ? 'text-sky-600 border-b-2 border-sky-600'
               : 'text-gray-600 hover:text-gray-800'
           }`}
         >
@@ -74,6 +79,7 @@ export default function PreviewPanel({ message }: PreviewPanelProps) {
           <iframe
             srcDoc={iframeContent}
             className="w-full h-full border-none"
+            scrolling="yes"
             title="preview"
           />
         )}
@@ -85,7 +91,7 @@ export default function PreviewPanel({ message }: PreviewPanelProps) {
           onClick={() => {
             navigator.clipboard.writeText(`<style>${css}</style>${html}`)
           }}
-          className="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg transition"
+          className="flex-1 bg-sky-600 hover:bg-sky-700 text-white font-semibold py-2 px-4 rounded-lg transition"
         >
           Copy HTML
         </button>
@@ -93,7 +99,7 @@ export default function PreviewPanel({ message }: PreviewPanelProps) {
           onClick={() => {
             navigator.clipboard.writeText(css)
           }}
-          className="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg transition"
+          className="flex-1 bg-sky-500 hover:bg-sky-600 text-white font-semibold py-2 px-4 rounded-lg transition"
         >
           Copy CSS
         </button>

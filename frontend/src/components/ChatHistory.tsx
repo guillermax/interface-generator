@@ -1,4 +1,4 @@
-import { Message } from '../types'
+import type { Message } from '../types'
 
 interface ChatHistoryProps {
   messages: Message[]
@@ -15,7 +15,7 @@ export default function ChatHistory({
     <div className="w-64 bg-white border-r border-gray-200 flex flex-col">
       {/* Header */}
       <div className="p-4 border-b border-gray-200">
-        <button className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg transition">
+        <button className="w-full bg-sky-600 hover:bg-sky-700 text-white font-semibold py-2 px-4 rounded-lg transition">
           + New Chat
         </button>
       </div>
@@ -31,7 +31,7 @@ export default function ChatHistory({
                 onClick={() => onSelectMessage(msg)}
                 className={`w-full text-left px-3 py-2 rounded-lg mb-2 truncate text-sm transition ${
                   selectedMessage?.id === msg.id
-                    ? 'bg-blue-100 text-blue-900'
+                    ? 'bg-sky-100 text-sky-900'
                     : 'text-gray-700 hover:bg-gray-100'
                 }`}
               >

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import ChatHistory from './ChatHistory'
 import ChatInput from './ChatInput'
 import PreviewPanel from './PreviewPanel'
-import { Message } from '../types'
+import type { Message } from '../types'
 
 export default function ChatInterface() {
   const [messages, setMessages] = useState<Message[]>([])

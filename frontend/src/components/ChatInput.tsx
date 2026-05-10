@@ -49,14 +49,14 @@ export default function ChatInput({ onSendMessage }: ChatInputProps) {
           onChange={handleChange}
           onKeyDown={handleKeyDown}
           placeholder="Describe the interface you want to create... (Ctrl+Enter to send)"
-          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
           rows={1}
           disabled={isLoading}
         />
         <button
           onClick={handleSend}
           disabled={!input.trim() || isLoading}
-          className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white font-semibold py-2 px-6 rounded-lg transition h-fit"
+          className="bg-sky-600 hover:bg-sky-700 disabled:bg-slate-300 text-white font-semibold py-2 px-6 rounded-lg transition h-fit"
         >
           {isLoading ? 'Sending...' : 'Send'}
         </button>
