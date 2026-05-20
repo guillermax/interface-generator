@@ -1,128 +1,81 @@
+"""
+Сервис генерации интерфейса — реальный конвейер.
+
+Цепочка обработки:
+NLP-модуль → AMI Builder → Template Engine → CSS Builder → Validator → Storage
+"""
 import time
-import uuid
+
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.services.nlp import NLPModule
 from app.services.ami_builder import AMIBuilder
-from app.schemas.ami import AMIGraph
+from app.services.template_engine import TemplateEngine
+from app.services.css_builder import CSSBuilder
+from app.services.validator import Validator
+from app.services.storage import StorageService
 
 
-def generate_interface(text: str) -> dict[str, object]:
+# Синглтоны без состояния — инициализируются один раз при импорте
+_nlp = NLPModule()
+_ami_builder = AMIBuilder()
+_template_engine = TemplateEngine()
+_css_builder = CSSBuilder()
+_validator = Validator()
+
+
+def generate(text: str) -> dict:
+    """
+    Синхронный конвейер генерации.
+    Используется напрямую в тестах и как ядро generate_interface.
+    """
     start = time.perf_counter()
 
-    time.sleep(0.03)  # Имитация работы
+    entities = _nlp.predict(text)
+    graph = _ami_builder.build(entities)
+    html = _template_engine.render(graph)
+    css = _css_builder.build(graph)
+    html, validation_issues = _validator.validate(html)
 
-    # NLP модуль для распознавания сущностей
-    nlp = NLPModule()
-    entities = nlp.predict(text)
-    
-    # Построение AMI-графа
-    ami_builder = AMIBuilder()
-    ami_graph = ami_builder.build(entities)
-
-    # Заглушка HTML/CSS (пока не подключаем Jinja2)
-    html = '''<form class="login-form" aria-labelledby="login-title" role="form">
-  <h2 id="login-title" class="login-form__title">Login</h2>
-  <div class="login-form__field">
-    <label class="login-form__label" for="email">Email</label>
-    <input type="email" id="email" placeholder="Enter your email" class="login-form__input" aria-describedby="email-help" aria-required="true" />
-    <div id="email-help" class="sr-only">Enter a valid email address</div>
-  </div>
-  <div class="login-form__field">
-    <label class="login-form__label" for="password">Password</label>
-    <input type="password" id="password" placeholder="Enter your password" class="login-form__input" aria-describedby="password-help" aria-required="true" />
-    <div id="password-help" class="sr-only">Enter your password</div>
-  </div>
-  <button type="submit" class="login-form__button" aria-label="Sign in to your account">Sign In</button>
-</form>'''
-
-    css = '''body {
-  margin: 0;
-  padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.login-form {
-  max-width: 400px;
-  margin: 0 auto;
-  padding: 2rem;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.login-form__title {
-  font-size: 1.5rem;
-  font-weight: bold;
-  margin-bottom: 1.5rem;
-  color: #333;
-}
-
-.login-form__field {
-  margin-bottom: 1rem;
-}
-
-.login-form__label {
-  display: block;
-  font-size: 0.875rem;
-  font-weight: 500;
-  margin-bottom: 0.5rem;
-  color: #374151;
-}
-
-.login-form__input {
-  width: 100%;
-  padding: 0.5rem 1rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.375rem;
-  font-size: 1rem;
-  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
-}
-
-.login-form__input:focus {
-  outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-.login-form__button {
-  width: 100%;
-  background: #3b82f6;
-  color: white;
-  font-weight: bold;
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 0.375rem;
-  cursor: pointer;
-  transition: background-color 0.15s ease-in-out;
-}
-
-.login-form__button:hover {
-  background: #2563eb;
-}
-
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}'''
-
-    generation_time_ms = (time.perf_counter() - start) * 1000
+    elapsed_ms = int((time.perf_counter() - start) * 1000)
 
     return {
-        'request_id': str(uuid.uuid4()),
-        'html': html,
-        'css': css,
-        'generation_time_ms': round(generation_time_ms, 2),
-        'ami': ami_graph,
+        "html": html,
+        "css": css,
+        "generation_time_ms": elapsed_ms,
+        "ami": graph,
+        "validation_issues": validation_issues,
+        "_entities": entities,          # используется только внутри generate_interface
     }
+
+
+async def generate_interface(text: str, db: AsyncSession) -> dict:
+    """
+    Асинхронный фасад: запускает конвейер и сохраняет результат в БД.
+    request_id берётся из БД.
+    """
+    storage = StorageService(db)
+    request_id = await storage.save_request(text)
+
+    try:
+        result = generate(text)
+
+        entities = result.pop("_entities")
+        nlp_result = [e.model_dump() for e in entities]
+        ami_dict = result["ami"].model_dump()
+
+        await storage.save_result(
+            request_id=request_id,
+            html=result["html"],
+            css=result["css"],
+            ami_graph=ami_dict,
+            generation_time_ms=result["generation_time_ms"],
+            nlp_result=nlp_result,
+        )
+
+        result["request_id"] = str(request_id)
+        return result
+
+    except Exception as exc:
+        await storage.mark_error(request_id, str(exc))
+        raise

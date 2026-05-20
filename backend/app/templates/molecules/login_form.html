@@ -1,0 +1,6 @@
+<form class="login-form" method="post" aria-label="{{ attrs.label | default('Форма входа') }}">
+  <h1 class="login-form__title">{{ attrs.title | default('Вход') }}</h1>
+  <div class="login-form__fields">
+    {{ children | safe }}
+  </div>
+</form>

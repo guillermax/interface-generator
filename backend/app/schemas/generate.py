@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 
 from app.schemas.ami import AMIGraph
+from app.services.validator import ValidationIssue
 
 
 class GenerateRequest(BaseModel):
@@ -13,3 +14,4 @@ class GenerateResponse(BaseModel):
     css: str
     generation_time_ms: float
     ami: AMIGraph | None = None
+    validation_issues: list[ValidationIssue] = []

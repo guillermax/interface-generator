@@ -30,6 +30,28 @@ class TestNLPModule:
         
         assert any(e.entity_type == 'LoginForm' for e in entities)
     
+    def test_registration_form_recognition(self):
+        """Тестирует распознавание формы регистрации"""
+        text = "форма регистрации с email и паролем"
+        entities = self.nlp.predict(text)
+        
+        # Должна быть RegistrationForm
+        assert any(e.entity_type == 'RegistrationForm' for e in entities)
+        
+        # Должны быть Input для email и password
+        assert any(e.entity_type == 'Input' and 'email' in e.attributes.get('type', '').lower() for e in entities)
+        assert any(e.entity_type == 'Input' and 'password' in e.attributes.get('type', '').lower() for e in entities)
+        
+        # Должен быть Button для submit
+        assert any(e.entity_type == 'Button' for e in entities)
+    
+    def test_registration_form_alternative_keyword(self):
+        """Тестирует распознавание с альтернативным ключевым словом 'registration form'"""
+        text = "Create a registration form"
+        entities = self.nlp.predict(text)
+        
+        assert any(e.entity_type == 'RegistrationForm' for e in entities)
+    
     def test_product_card_recognition(self):
         """Тестирует распознавание карточки товара"""
         text = "карточка товара"

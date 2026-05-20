@@ -1,0 +1,6 @@
+<form class="registration-form" method="post" aria-label="{{ attrs.label | default('Форма регистрации') }}">
+  <h1 class="registration-form__title">{{ attrs.title | default('Регистрация') }}</h1>
+  <div class="registration-form__fields">
+    {{ children | safe }}
+  </div>
+</form>

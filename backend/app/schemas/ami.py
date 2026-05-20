@@ -1,16 +1,14 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class AMINode(BaseModel):
-    """Узел абстрактной модели интерфейса (AMI)"""
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     node_id: str = Field(default_factory=lambda: __import__('uuid').uuid4().hex[:8])
     type: str
     attributes: dict = Field(default_factory=dict)
     styles: dict = Field(default_factory=dict)
     children: list['AMINode'] = Field(default_factory=list)
-
-    class Config:
-        arbitrary_types_allowed = True
 
 
 AMINode.model_rebuild()

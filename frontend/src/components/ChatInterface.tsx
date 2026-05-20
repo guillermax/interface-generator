@@ -1,74 +1,93 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import ChatHistory from './ChatHistory'
 import ChatInput from './ChatInput'
 import PreviewPanel from './PreviewPanel'
-import type { Message } from '../types'
+import type { FullResult, HistoryItem, Message } from '../types'
+import { generateInterface, getHistory, getHistoryItem } from '../api'
 
 export default function ChatInterface() {
   const [messages, setMessages] = useState<Message[]>([])
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null)
+  const [dbHistory, setDbHistory] = useState<HistoryItem[]>([])
+
+  const loadHistory = async () => {
+    try {
+      const items = await getHistory()
+      setDbHistory(items)
+    } catch {
+      // history is non-critical; ignore errors silently
+    }
+  }
+
+  useEffect(() => {
+    loadHistory()
+  }, [])
+
+  const handleSelectHistoryItem = async (item: HistoryItem) => {
+    try {
+      const full: FullResult = await getHistoryItem(item.request_id)
+      const msg: Message = {
+        id: item.request_id,
+        text: `Interface generated in ${full.generation_time_ms ?? '?'}ms`,
+        role: 'assistant',
+        timestamp: new Date(item.created_at),
+        preview: { html: full.html, css: full.css },
+      }
+      setSelectedMessage(msg)
+    } catch {
+      // ignore — item may not have a result yet
+    }
+  }
 
   const handleSendMessage = async (text: string) => {
-    // Add user message
     const userMessage: Message = {
       id: Date.now().toString(),
       text,
       role: 'user',
       timestamp: new Date(),
     }
-    
-    setMessages([...messages, userMessage])
-    
-    // Simulate API call with mock response
-    setTimeout(() => {
+
+    setMessages(prev => [...prev, userMessage])
+
+    try {
+      const result = await generateInterface(text)
+
       const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        text: 'Generated a login form for you',
+        id: result.request_id,
+        text: `Interface generated in ${result.generation_time_ms}ms`,
         role: 'assistant',
         timestamp: new Date(),
-        preview: {
-          html: `<form class="max-w-sm mx-auto p-6 bg-white rounded-lg shadow">
-  <h2 class="text-2xl font-bold mb-6 text-gray-800">Login</h2>
-  <div class="mb-4">
-    <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
-    <input type="email" placeholder="Enter your email" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-  </div>
-  <div class="mb-6">
-    <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
-    <input type="password" placeholder="Enter your password" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-  </div>
-  <button type="submit" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition">Sign In</button>
-</form>`,
-          css: `body {
-  margin: 0;
-  padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}`
-        }
+        preview: { html: result.html, css: result.css },
       }
-      
+
       setMessages(prev => [...prev, assistantMessage])
       setSelectedMessage(assistantMessage)
-    }, 1000)
+      await loadHistory()
+    } catch {
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        text: 'Unable to generate interface. Please try again.',
+        role: 'assistant',
+        timestamp: new Date(),
+      }
+      setMessages(prev => [...prev, assistantMessage])
+      setSelectedMessage(assistantMessage)
+    }
   }
 
   return (
     <div className="flex w-full h-full bg-gray-50">
       {/* Left sidebar - Chat history */}
-      <ChatHistory 
+      <ChatHistory
         messages={messages}
         selectedMessage={selectedMessage}
         onSelectMessage={setSelectedMessage}
+        dbHistory={dbHistory}
+        onSelectHistoryItem={handleSelectHistoryItem}
       />
-      
+
       {/* Main chat area */}
       <div className="flex-1 flex flex-col">
-        {/* Messages display area */}
         <div className="flex-1 overflow-y-auto p-6">
           {messages.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-gray-400">
@@ -98,13 +117,12 @@ export default function ChatInterface() {
             </div>
           )}
         </div>
-        
-        {/* Chat input */}
+
         <ChatInput onSendMessage={handleSendMessage} />
       </div>
-      
+
       {/* Right sidebar - Preview panel */}
-      {selectedMessage && selectedMessage.preview && (
+      {selectedMessage?.preview && (
         <PreviewPanel message={selectedMessage} />
       )}
     </div>

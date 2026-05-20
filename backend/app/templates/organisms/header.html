@@ -1,0 +1,8 @@
+<header class="header" role="banner" aria-label="{{ attrs.label | default('Шапка сайта') }}">
+  {% if attrs.title %}
+    <h1 class="header__title">{{ attrs.title }}</h1>
+  {% endif %}
+  <div class="header__content">
+    {{ children | safe }}
+  </div>
+</header>

@@ -10,8 +10,14 @@ class AMIBuilder:
     """Построение и валидация AMI-графа"""
     
     KNOWN_TYPES = {
-        'LoginForm', 'ProductCard', 'Nav', 'Container',
-        'Input', 'Button', 'Text', 'Image', 'NavItem'
+        # Atoms
+        'Input', 'Button', 'Text', 'Image', 'Label', 'Heading',
+        # Molecules
+        'LoginForm', 'RegistrationForm', 'ProductCard', 'SearchBar', 'NavItem',
+        # Organisms
+        'Nav', 'Header', 'Footer', 'Sidebar', 'CardGrid',
+        # Generic
+        'Container',
     }
     
     def build(self, entities: list[Entity]) -> AMIGraph:

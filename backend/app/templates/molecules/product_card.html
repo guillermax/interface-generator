@@ -1,0 +1,15 @@
+<article class="product-card" role="article" aria-label="{{ attrs.label | default('Карточка товара') }}">
+  {% if attrs.image %}
+    <img src="{{ attrs.image }}" alt="{{ attrs.alt | default(attrs.title | default('Товар')) }}" class="product-card__image">
+  {% endif %}
+  <div class="product-card__body">
+    <h2 class="product-card__title">{{ attrs.title | default('Название товара') }}</h2>
+    {% if attrs.price %}
+      <p class="product-card__price">{{ attrs.price }}</p>
+    {% endif %}
+    {% if attrs.description %}
+      <p class="product-card__description">{{ attrs.description }}</p>
+    {% endif %}
+    {{ children | safe }}
+  </div>
+</article>

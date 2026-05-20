@@ -1,0 +1,9 @@
+<label class="input__wrapper">
+  <span class="input__label">{{ attrs.label | default(attrs.type | capitalize) }}</span>
+  <input type="{{ attrs.type | default('text') }}"
+         name="{{ attrs.name | default(attrs.type | default('field')) }}"
+         placeholder="{{ attrs.placeholder | default('') }}"
+         {% if attrs.required %}required{% endif %}
+         aria-label="{{ attrs.label | default(attrs.type | default('Поле ввода')) }}"
+         class="input__field">
+</label>

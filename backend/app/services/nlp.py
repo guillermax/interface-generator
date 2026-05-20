@@ -57,6 +57,61 @@ class NLPModule:
             )
             entities.append(submit_button)
         
+        # Форма регистрации
+        elif any(keyword in text_lower for keyword in ['форма регистрации', 'registration form', 'регистрац', 'signup', 'sign up']):
+            registration_form_id = __import__('uuid').uuid4().hex[:8]
+            
+            form_entity = Entity(
+                entity_id=registration_form_id,
+                entity_type='RegistrationForm',
+                text='Registration Form',
+                attributes={'label': 'Registration Form'},
+                parent_id=None,
+                confidence=0.95
+            )
+            entities.append(form_entity)
+            
+            # Дети формы
+            email_input = Entity(
+                entity_id=__import__('uuid').uuid4().hex[:8],
+                entity_type='Input',
+                text='Email Input',
+                attributes={'type': 'email', 'placeholder': 'Enter your email'},
+                parent_id=registration_form_id,
+                confidence=0.95
+            )
+            entities.append(email_input)
+            
+            password_input = Entity(
+                entity_id=__import__('uuid').uuid4().hex[:8],
+                entity_type='Input',
+                text='Password Input',
+                attributes={'type': 'password', 'placeholder': 'Enter your password'},
+                parent_id=registration_form_id,
+                confidence=0.95
+            )
+            entities.append(password_input)
+            
+            confirm_password_input = Entity(
+                entity_id=__import__('uuid').uuid4().hex[:8],
+                entity_type='Input',
+                text='Confirm Password Input',
+                attributes={'type': 'password', 'placeholder': 'Confirm your password'},
+                parent_id=registration_form_id,
+                confidence=0.95
+            )
+            entities.append(confirm_password_input)
+            
+            submit_button = Entity(
+                entity_id=__import__('uuid').uuid4().hex[:8],
+                entity_type='Button',
+                text='Sign Up',
+                attributes={'label': 'Sign Up', 'type': 'submit'},
+                parent_id=registration_form_id,
+                confidence=0.95
+            )
+            entities.append(submit_button)
+        
         # Карточка товара
         elif any(keyword in text_lower for keyword in ['карточка товара', 'product card', 'товар', 'card']):
             product_card_id = __import__('uuid').uuid4().hex[:8]

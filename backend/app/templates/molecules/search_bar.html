@@ -1,0 +1,12 @@
+<form class="search-bar" role="search" aria-label="{{ attrs.label | default('Поиск') }}">
+  <label class="search-bar__label" for="search-input">{{ attrs.label | default('Поиск') }}</label>
+  <input type="search"
+         id="search-input"
+         name="q"
+         class="search-bar__input"
+         placeholder="{{ attrs.placeholder | default('Введите запрос...') }}"
+         aria-label="{{ attrs.label | default('Поиск') }}">
+  <button type="submit" class="search-bar__button" aria-label="Найти">
+    {{ attrs.button_text | default('Найти') }}
+  </button>
+</form>

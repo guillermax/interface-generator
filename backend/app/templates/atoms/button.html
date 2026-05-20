@@ -1,0 +1,5 @@
+<button type="{{ attrs.type | default('button') }}"
+        class="button button--{{ attrs.type | default('default') }}"
+        aria-label="{{ attrs.label | default('Кнопка') }}">
+  {{ attrs.label | default('Кнопка') }}
+</button>

@@ -1,0 +1,8 @@
+<footer class="footer" role="contentinfo" aria-label="{{ attrs.label | default('Подвал сайта') }}">
+  <div class="footer__content">
+    {{ children | safe }}
+  </div>
+  {% if attrs.copyright %}
+    <p class="footer__copyright">{{ attrs.copyright }}</p>
+  {% endif %}
+</footer>
