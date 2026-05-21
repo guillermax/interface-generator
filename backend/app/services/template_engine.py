@@ -1,17 +1,24 @@
-"""
-Template Engine — детерминированная генерация HTML из AMI-графа.
+"""Template Engine — deterministic HTML generation from AMI graph.
 
-Обходит граф в ширину (BFS) и для каждого узла ищет Jinja2-шаблон
-в директории templates/{level}/{type}.html. Если шаблон не найден,
-используется fallback-шаблон.
+BFS traversal: for each node, look up a Jinja2 template by Atomic Design level.
+If no template file exists for a node that IS in COMPONENT_LEVELS (e.g. ImageSlider,
+Modal, Accordion), the LLM fallback client is called instead.
+Nodes NOT in COMPONENT_LEVELS (e.g. Container) use the generic _fallback.html.
+
+render() is async and returns:
+  (html_string, list[tuple[component_type, generation_method, llm_attempts]])
 """
 from pathlib import Path
-from jinja2 import Environment, FileSystemLoader, select_autoescape
+
+from jinja2 import Environment, FileSystemLoader, TemplateNotFound, select_autoescape
+
 from app.schemas.ami import AMIGraph, AMINode
+from app.services.llm_client import LLMFallbackClient
 
 
-# Маппинг типов компонентов на уровни Atomic Design
-COMPONENT_LEVELS = {
+# Mapping of component types to Atomic Design levels.
+# Types listed here but WITHOUT a matching .html file will trigger LLM fallback.
+COMPONENT_LEVELS: dict[str, str] = {
     # Atoms
     "Button": "atoms",
     "Input": "atoms",
@@ -31,16 +38,22 @@ COMPONENT_LEVELS = {
     "Footer": "organisms",
     "Sidebar": "organisms",
     "CardGrid": "organisms",
+    # LLM-only organisms — no template file, always routed to LLM fallback
+    "ImageSlider": "organisms",
+    "Modal": "organisms",
+    "Accordion": "organisms",
 }
+
+# Type alias for one component log entry
+_LogEntry = tuple[str, str, int | None]  # (component_type, method, llm_attempts)
 
 
 class TemplateEngine:
-    """Рендерит HTML-документ на основе AMI-графа."""
+    """Renders an HTML document from an AMI graph, calling LLM for unknown templates."""
 
-    def __init__(self, templates_dir: str | None = None):
+    def __init__(self, templates_dir: str | None = None) -> None:
         if templates_dir is None:
             templates_dir = str(Path(__file__).parent.parent / "templates")
-
         self.env = Environment(
             loader=FileSystemLoader(templates_dir),
             autoescape=select_autoescape(["html"]),
@@ -48,59 +61,90 @@ class TemplateEngine:
             lstrip_blocks=True,
         )
 
-    def render(self, graph: AMIGraph, title: str = "Сгенерированный интерфейс") -> str:
+    async def render(
+        self,
+        graph: AMIGraph,
+        llm_client: LLMFallbackClient,
+        title: str = "Сгенерированный интерфейс",
+    ) -> tuple[str, list[_LogEntry]]:
         """
-        Рендерит HTML из AMI-графа.
+        Render the full HTML page from *graph*.
 
-        Параметры:
-            graph: построенный AMIGraph
-            title: заголовок страницы (тег <title>)
-
-        Возвращает:
-            строку с готовым HTML-документом
+        Returns:
+            (html_string, log_entries) where each log_entry is
+            (component_type, "template"|"llm", llm_attempts_or_None).
         """
-        body_parts = [self._render_node(node) for node in graph.components]
+        body_parts: list[str] = []
+        all_entries: list[_LogEntry] = []
+
+        for node in graph.components:
+            node_html, entries = await self._render_node(node, llm_client)
+            body_parts.append(node_html)
+            all_entries.extend(entries)
+
         body = "\n".join(body_parts)
-
         page = self.env.get_template("page.html")
-        return page.render(body=body, title=title, lang="ru")
+        return page.render(body=body, title=title, lang="ru"), all_entries
 
-    def _render_node(self, node: AMINode) -> str:
-        """Рекурсивно рендерит узел и его потомков."""
-        # Сначала рендерим всех детей
-        children_html = "\n".join(self._render_node(child) for child in node.children)
-
-        # Ищем шаблон по уровню и типу
+    async def _render_node(
+        self,
+        node: AMINode,
+        llm_client: LLMFallbackClient,
+    ) -> tuple[str, list[_LogEntry]]:
+        """Recursively render a node. Children are rendered only for template-based nodes."""
         level = COMPONENT_LEVELS.get(node.type)
-        template_name = None
 
-        if level:
-            # camelCase → snake_case для имени файла
+        if level is not None:
             file_name = self._to_snake_case(node.type)
             template_name = f"{level}/{file_name}.html"
 
-        try:
-            if template_name:
+            # Try to load a Jinja2 template
+            try:
                 template = self.env.get_template(template_name)
-                return template.render(
+                # Template found → render children, then render this node
+                children_html, child_entries = await self._render_children(node, llm_client)
+                node_html = template.render(
                     attrs=node.attributes,
                     styles=node.styles,
                     children=children_html,
                 )
-        except Exception:
-            pass
+                return node_html, [*child_entries, (node.type, "template", None)]
+            except TemplateNotFound:
+                # No template → LLM fallback (children are generated by LLM internally)
+                html, attempts = await llm_client.generate_component(
+                    node_type=node.type,
+                    attributes=node.attributes,
+                    styles=node.styles,
+                    parent_type=None,
+                )
+                return html, [(node.type, "llm", attempts)]
 
-        # Fallback для неизвестных типов
-        template = self.env.get_template("_fallback.html")
-        return template.render(
+        # Node type not in COMPONENT_LEVELS → generic fallback template
+        children_html, child_entries = await self._render_children(node, llm_client)
+        fallback = self.env.get_template("_fallback.html")
+        node_html = fallback.render(
             attrs={**node.attributes, "label": node.type},
             children=children_html,
         )
+        return node_html, [*child_entries, (node.type, "template", None)]
+
+    async def _render_children(
+        self,
+        node: AMINode,
+        llm_client: LLMFallbackClient,
+    ) -> tuple[str, list[_LogEntry]]:
+        parts: list[str] = []
+        entries: list[_LogEntry] = []
+        for child in node.children:
+            child_html, child_entries = await self._render_node(child, llm_client)
+            parts.append(child_html)
+            entries.extend(child_entries)
+        return "\n".join(parts), entries
 
     @staticmethod
     def _to_snake_case(name: str) -> str:
         """LoginForm → login_form, ProductCard → product_card."""
-        result = []
+        result: list[str] = []
         for i, char in enumerate(name):
             if char.isupper() and i > 0:
                 result.append("_")

@@ -1,5 +1,6 @@
 """Тесты Validator — проверка WCAG 2.1 AA правил и автоисправлений."""
 import pytest
+from app.services.llm_client import MockLLMClient
 from app.services.validator import Validator
 from app.services.nlp import NLPModule
 from app.services.ami_builder import AMIBuilder
@@ -140,11 +141,13 @@ class TestValidator:
 
     # ------------------------------------------------------------------ integration
 
-    def test_integration_login_form_zero_issues(self, validator, pipeline):
+    @pytest.mark.asyncio
+    async def test_integration_login_form_zero_issues(self, validator, pipeline):
         nlp, builder, engine = pipeline
         entities = nlp.predict("форма входа с email и паролем")
         graph = builder.build(entities)
-        html = engine.render(graph)
+        llm = MockLLMClient()
+        html, _ = await engine.render(graph, llm)
         _, issues = validator.validate(html)
 
         assert issues == [], (

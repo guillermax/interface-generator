@@ -160,7 +160,7 @@ class NLPModule:
         # Навигационное меню
         elif any(keyword in text_lower for keyword in ['навигац', 'navbar', 'меню', 'navigation', 'menu']):
             nav_id = __import__('uuid').uuid4().hex[:8]
-            
+
             nav_entity = Entity(
                 entity_id=nav_id,
                 entity_type='Nav',
@@ -170,7 +170,7 @@ class NLPModule:
                 confidence=0.95
             )
             entities.append(nav_entity)
-            
+
             # Три пункта меню
             for i, item in enumerate(['Home', 'About', 'Contact'], 1):
                 menu_item = Entity(
@@ -182,7 +182,93 @@ class NLPModule:
                     confidence=0.95
                 )
                 entities.append(menu_item)
-        
+
+        # Слайдер / карусель изображений
+        elif any(keyword in text_lower for keyword in ['слайдер', 'карусель', 'slider', 'carousel']):
+            slider_id = __import__('uuid').uuid4().hex[:8]
+
+            slider_entity = Entity(
+                entity_id=slider_id,
+                entity_type='ImageSlider',
+                text='Image Slider',
+                attributes={'label': 'Image Slider', 'slide_count': 3},
+                parent_id=None,
+                confidence=0.9,
+            )
+            entities.append(slider_entity)
+
+            for i in range(1, 4):
+                slide = Entity(
+                    entity_id=__import__('uuid').uuid4().hex[:8],
+                    entity_type='Image',
+                    text=f'Slide {i}',
+                    attributes={
+                        'alt': f'Slide {i}',
+                        'src': f'https://picsum.photos/800/400?random={i}',
+                    },
+                    parent_id=slider_id,
+                    confidence=0.9,
+                )
+                entities.append(slide)
+
+        # Модальное / всплывающее окно
+        elif any(keyword in text_lower for keyword in ['модальное окно', 'всплывающее окно', 'modal', 'диалог']):
+            modal_id = __import__('uuid').uuid4().hex[:8]
+
+            modal_entity = Entity(
+                entity_id=modal_id,
+                entity_type='Modal',
+                text='Modal',
+                attributes={'label': 'Modal Dialog'},
+                parent_id=None,
+                confidence=0.9,
+            )
+            entities.append(modal_entity)
+
+            heading = Entity(
+                entity_id=__import__('uuid').uuid4().hex[:8],
+                entity_type='Heading',
+                text='Заголовок',
+                attributes={'level': 2, 'text': 'Заголовок'},
+                parent_id=modal_id,
+                confidence=0.9,
+            )
+            entities.append(heading)
+
+            close_btn = Entity(
+                entity_id=__import__('uuid').uuid4().hex[:8],
+                entity_type='Button',
+                text='Close',
+                attributes={'label': 'Close', 'type': 'button'},
+                parent_id=modal_id,
+                confidence=0.9,
+            )
+            entities.append(close_btn)
+
+        # Аккордеон / развёртываемый список
+        elif any(keyword in text_lower for keyword in ['аккордеон', 'accordion', 'развёртываемый список']):
+            accordion_id = __import__('uuid').uuid4().hex[:8]
+
+            accordion_entity = Entity(
+                entity_id=accordion_id,
+                entity_type='Accordion',
+                text='Accordion',
+                attributes={'label': 'Accordion'},
+                parent_id=None,
+                confidence=0.9,
+            )
+            entities.append(accordion_entity)
+
+            heading = Entity(
+                entity_id=__import__('uuid').uuid4().hex[:8],
+                entity_type='Heading',
+                text='Section 1',
+                attributes={'level': 3, 'text': 'Section 1'},
+                parent_id=accordion_id,
+                confidence=0.9,
+            )
+            entities.append(heading)
+
         # Если ничего не распознано
         else:
             container_id = __import__('uuid').uuid4().hex[:8]
