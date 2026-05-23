@@ -1,0 +1,75 @@
+# Запуск: docker compose --env-file .env.docker up --build -d
+#
+# Архитектурное решение по фронтенду:
+#   Сервис "nginx" строится из frontend/Dockerfile (node→nginx multi-stage).
+#   Статика baked-in в образ — нет shared volume, нет race condition между
+#   frontend-builder и nginx. nginx.conf монтируется отдельным bind-mount.
+#
+# Порт БД наружу НЕ пробрасывается — db доступна только backend в backend_network.
+# Это исключает конфликт с dev-postgres на хосте (порт 5432 или 5433).
+
+services:
+
+  # ── PostgreSQL ───────────────────────────────────────────────────────────────
+  db:
+    image: postgres:15-alpine
+    container_name: ifgen-db
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - backend_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # ── FastAPI backend ──────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ifgen-backend
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
+      LLM_MODE: ${LLM_MODE}
+      LLM_PROVIDER: ${LLM_PROVIDER}
+      GIGACHAT_AUTH_KEY: ${GIGACHAT_AUTH_KEY:-}
+      GIGACHAT_SCOPE: ${GIGACHAT_SCOPE}
+      GIGACHAT_MODEL: ${GIGACHAT_MODEL}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - backend_network
+    # Порт 8000 НЕ пробрасывается наружу — доступ только через nginx /api/
+    restart: unless-stopped
+
+  # ── nginx + React SPA ────────────────────────────────────────────────────────
+  nginx:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ifgen-nginx
+    ports:
+      - "80:80"
+    volumes:
+      # Монтируем только конфиг — статика уже в образе (multi-stage build)
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - backend
+    networks:
+      - backend_network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+networks:
+  backend_network:
+    driver: bridge

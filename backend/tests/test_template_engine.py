@@ -80,17 +80,15 @@ async def test_unknown_type_renders_fallback(engine, nlp, builder, llm):
     assert "<body>" in html
 
 
-async def test_slider_uses_llm_path(engine, nlp, builder, llm):
-    """ImageSlider has no template — must go through LLM, log says 'llm'."""
+async def test_slider_uses_template_path(engine, nlp, builder, llm):
+    """ImageSlider now has a Jinja2 template — must go through template path."""
     entities = nlp.predict("слайдер с тремя картинками")
     graph = builder.build(entities)
     html, log = await engine.render(graph, llm)
 
-    # HTML contains mock slider markup
     assert "image-slider" in html
-    # At least one log entry has generation_method='llm' for ImageSlider
-    llm_entries = [(t, m) for t, m, _ in log if m == "llm"]
-    assert any(t == "ImageSlider" for t, _ in llm_entries)
+    template_entries = [(t, m) for t, m, _ in log if m == "template"]
+    assert any(t == "ImageSlider" for t, _ in template_entries)
 
 
 async def test_template_log_entries(engine, nlp, builder, llm):

@@ -7,7 +7,10 @@ export interface GenerateResponse {
   generation_time_ms: number
 }
 
-const BASE = 'http://localhost:8000/api'
+// Dev: VITE_API_BASE_URL=http://localhost:8000 (из .env.development)
+// Prod: VITE_API_BASE_URL=''              (из .env.production → относительные пути)
+const API_BASE = import.meta.env.VITE_API_BASE_URL || ''
+const BASE = `${API_BASE}/api`
 
 export async function generateInterface(text: string): Promise<GenerateResponse> {
   const response = await fetch(`${BASE}/generate`, {

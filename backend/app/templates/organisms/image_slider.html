@@ -1,0 +1,19 @@
+<section class="image-slider" role="region" aria-label="{{ attrs.label | default('Галерея изображений') }}" aria-roledescription="carousel">
+  <div class="image-slider__track" aria-live="polite">
+    {{ children | safe }}
+  </div>
+  <button class="image-slider__nav image-slider__nav--prev"
+          type="button"
+          aria-label="Предыдущий слайд">&#8249;</button>
+  <button class="image-slider__nav image-slider__nav--next"
+          type="button"
+          aria-label="Следующий слайд">&#8250;</button>
+  <div class="image-slider__dots" role="tablist" aria-label="Слайды">
+    {% for i in range(attrs.slide_count | default(3)) %}
+    <span class="image-slider__dot{% if loop.first %} image-slider__dot--active{% endif %}"
+          role="tab"
+          aria-label="Слайд {{ loop.index }}"
+          aria-selected="{{ 'true' if loop.first else 'false' }}"></span>
+    {% endfor %}
+  </div>
+</section>

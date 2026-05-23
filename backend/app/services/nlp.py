@@ -245,6 +245,30 @@ class NLPModule:
             )
             entities.append(close_btn)
 
+        # Поисковая строка
+        elif any(keyword in text_lower for keyword in ['поиск', 'поисковая строка', 'search bar', 'search field']):
+            search_bar_id = __import__('uuid').uuid4().hex[:8]
+
+            search_bar_entity = Entity(
+                entity_id=search_bar_id,
+                entity_type='SearchBar',
+                text='Search Bar',
+                attributes={'label': 'Поиск', 'placeholder': 'Поиск...'},
+                parent_id=None,
+                confidence=0.9,
+            )
+            entities.append(search_bar_entity)
+
+            search_button = Entity(
+                entity_id=__import__('uuid').uuid4().hex[:8],
+                entity_type='Button',
+                text='Найти',
+                attributes={'label': 'Найти', 'type': 'submit'},
+                parent_id=search_bar_id,
+                confidence=0.9,
+            )
+            entities.append(search_button)
+
         # Аккордеон / развёртываемый список
         elif any(keyword in text_lower for keyword in ['аккордеон', 'accordion', 'развёртываемый список']):
             accordion_id = __import__('uuid').uuid4().hex[:8]

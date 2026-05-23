@@ -97,13 +97,13 @@ async def test_slider_generates_html(db_session: AsyncSession):
     assert result["request_id"]
 
 
-async def test_slider_logs_llm_method(db_session: AsyncSession):
-    """ImageSlider component_log entry must have generation_method='llm'."""
+async def test_slider_logs_template_method(db_session: AsyncSession):
+    """ImageSlider now has a Jinja2 template → generation_method must be 'template'."""
     get_llm_client.cache_clear()
     os.environ["LLM_MODE"] = "mock"
 
     result = await generate_interface("слайдер с тремя картинками", db_session)
     entries = await _get_component_log(result["request_id"])
 
-    llm_types = [row[0] for row in entries if row[1] == "llm"]
-    assert "ImageSlider" in llm_types
+    template_types = [row[0] for row in entries if row[1] == "template"]
+    assert "ImageSlider" in template_types

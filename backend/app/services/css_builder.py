@@ -88,6 +88,76 @@ DEFAULT_STYLES = {
 .login-form__fields {
     display: flex;
     flex-direction: column;
+}
+/* Градиент применяется только к фону формы входа */
+body:has(.login-form), body:has(.registration-form) {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}""",
+
+    "image_slider": """.image-slider {
+    position: relative;
+    max-width: 800px;
+    margin: 2rem auto;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #1a1a2e;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+}
+.image-slider__track {
+    display: flex;
+    overflow: hidden;
+}
+.image-slider__track .image {
+    width: 100%;
+    min-width: 100%;
+    height: 400px;
+    object-fit: cover;
+    flex-shrink: 0;
+    display: block;
+}
+.image-slider__nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255, 255, 255, 0.9);
+    border: none;
+    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    transition: background 0.2s, transform 0.2s;
+    z-index: 2;
+}
+.image-slider__nav:hover {
+    background: white;
+    transform: translateY(-50%) scale(1.05);
+}
+.image-slider__nav--prev { left: 12px; }
+.image-slider__nav--next { right: 12px; }
+.image-slider__dots {
+    position: absolute;
+    bottom: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 8px;
+    z-index: 2;
+}
+.image-slider__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.5);
+    transition: background 0.2s;
+}
+.image-slider__dot--active {
+    background: white;
 }""",
 
     "registration_form": """.registration-form {
@@ -233,7 +303,7 @@ BASE_STYLES = """* { box-sizing: border-box; }
 body {
     margin: 0;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #f5f5f7;
     min-height: 100vh;
     color: #1a1a2e;
     line-height: 1.5;

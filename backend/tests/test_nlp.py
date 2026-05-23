@@ -69,6 +69,20 @@ class TestNLPModule:
         assert any(e.entity_type == 'Nav' for e in entities)
         assert any(e.entity_type == 'NavItem' for e in entities)
     
+    def test_search_bar_recognition(self):
+        """Тестирует распознавание поисковой строки"""
+        text = "поисковая строка"
+        entities = self.nlp.predict(text)
+
+        assert any(e.entity_type == 'SearchBar' for e in entities)
+        search_bar = next(e for e in entities if e.entity_type == 'SearchBar')
+        assert any(
+            e.entity_type == 'Button'
+            and e.attributes.get('type') == 'submit'
+            and e.parent_id == search_bar.entity_id
+            for e in entities
+        )
+
     def test_unknown_text_recognition(self):
         """Тестирует обработку неизвестного текста"""
         text = "Какой-то случайный текст"

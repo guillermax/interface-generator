@@ -1,5 +1,6 @@
-<img src="{{ attrs.src | default('') }}"
+<img src="{{ attrs.src if attrs.src else ('https://placehold.co/600x400/e2e8f0/64748b?text=' ~ (attrs.alt | default('Image'))) }}"
      alt="{{ attrs.alt | default('Изображение') }}"
      class="image"
+     loading="lazy"
      {% if attrs.width %}width="{{ attrs.width }}"{% endif %}
      {% if attrs.height %}height="{{ attrs.height }}"{% endif %}>

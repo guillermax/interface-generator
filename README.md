@@ -1,155 +1,85 @@
 # Interface Generator
 
-Прототип системы автоматической генерации HTML/CSS по текстовому описанию интерфейса.
-
-## 🎯 Статус проекта
-
-### ✅ Завершено (Этап 1)
-- [x] Инициализирован React + TypeScript проект через Vite
-- [x] Подключены Tailwind CSS + PostCSS + Autoprefixer
-- [x] Создана структура компонентов чата:
-  - `ChatInterface` - главный контейнер
-  - `ChatHistory` - история сообщений слева
-  - `ChatInput` - поле ввода снизу
-  - `PreviewPanel` - панель предпросмотра справа
-- [x] Реализован mock API (возвращает форму авторизации)
-- [x] Инициализирован git репозиторий
-- [x] Создан .gitignore
-
-### 📋 В разработке
-- [ ] Подключение реального бэкенда FastAPI
-- [ ] BERT для обработки текстовых описаний
-- [ ] PostgreSQL база данных
-- [ ] История чатов в БД
-- [ ] Улучшенная валидация CSS/HTML
-
-## 🛠️ Стек технологий
-
-- **Фронтенд**: React 19 + TypeScript + Vite + Tailwind CSS 4
-- **Бэкенд**: Python 3.11 + FastAPI (в разработке)
-- **NLP**: BERT через HuggingFace Transformers (в разработке)
-- **БД**: PostgreSQL (в разработке)
-
-## 📁 Структура проекта
-
-```
-interface-generator/
-├── frontend/                  # React приложение
-│   ├── src/
-│   │   ├── components/       # React компоненты
-│   │   │   ├── ChatInterface.tsx
-│   │   │   ├── ChatHistory.tsx
-│   │   │   ├── ChatInput.tsx
-│   │   │   └── PreviewPanel.tsx
-│   │   ├── types.ts          # TypeScript типы
-│   │   ├── App.tsx
-│   │   ├── index.css
-│   │   └── main.tsx
-│   ├── tailwind.config.js
-│   ├── postcss.config.js
-│   └── vite.config.ts
-├── backend/                   # FastAPI сервер (пока пусто)
-├── .gitignore
-└── README.md
-
-```
-
-## 🚀 Запуск проекта
-
-### Фронтенд разработка
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Приложение откроется на `http://localhost:5173`
-
-### Фронтенд сборка
-```bash
-cd frontend
-npm run build
-npm run preview
-```
-
-## 🎨 Особенности интерфейса
-
-### 💬 Чат интерфейс
-- История сообщений слева (боковая панель)
-- Поле ввода с автоматическим расширением
-- Отправка сообщения по Ctrl+Enter или кнопке Send
-- Сообщения пользователя справа (синие), ассистента слева (белые)
-
-### 👁️ Панель предпросмотра
-- **Code вкладка**: Просмотр HTML и CSS кода
-- **Preview вкладка**: Живой предпросмотр в iframe
-- Кнопки копирования для HTML и CSS
-
-### 🤖 Mock API
-Текущая реализация возвращает форму авторизации с полями:
-- Email
-- Password
-- Submit кнопка
-
-```json
-{
-  "html": "<form>...",
-  "css": "body { ... }"
-}
-```
-
-## 📝 Примечания
-
-### Известные ограничения
-1. OneDrive синхронизация блокирует удаление node_modules (рекомендуется работать из локальной папки C:\)
-2. npm может иметь проблемы с сетевым соединением - используйте `npm cache clean --force`
-3. Mock API возвращает фиксированный результат
-
-### Следующие шаги
-
-1. **Подключение бэкенда**
-   - Создать FastAPI сервер
-   - Настроить CORS
-   - Реализовать HTTP клиент на фронте
-
-2. **NLP обработка**
-   - Интегрировать BERT для анализа текста
-   - Создать pipeline для генерации кода
-
-3. **Сохранение истории**
-   - Создать БД схему
-   - Сохранять чаты в PostgreSQL
-
-## 👨‍💻 Разработка
-
-### Команды
-
-```bash
-# Запуск dev сервера
-npm run dev
-
-# Проверка типов и сборка
-npm run build
-
-# Линтинг
-npm run lint
-
-# Предпросмотр сборки
-npm run preview
-```
-
-### Расширение проекта
-
-Для добавления новых компонентов:
-1. Создайте файл в `src/components/`
-2. Экспортируйте компонент как default export
-3. Импортируйте в родительском компоненте
-
-## 📄 Лицензия
-
-MIT
+Прототип системы генерации HTML/CSS-интерфейсов по текстовому описанию на русском языке.
+Пользователь пишет «форма входа с email и паролем» — система возвращает готовый HTML с CSS, WCAG-валидацией и сохраняет результат в историю.
+Архитектура: NLP (rule-based) → Abstract Markup Interface → Template Engine / LLM Fallback → CSS Builder → Validator.
 
 ---
 
-**Дипломная работа** - прототип системы автоматической генерации интерфейсов
+## Запуск через Docker Compose (production)
+
+```bash
+git clone <repo-url> && cd interface-generator
+cp .env.docker.example .env.docker        # при необходимости измени пароль БД
+docker compose --env-file .env.docker up --build -d
+# Открой http://localhost
+```
+
+Три сервиса поднимаются как единая система: `db` (PostgreSQL 15) → `backend` (FastAPI + alembic) → `nginx` (статика React + reverse proxy).
+БД не пробрасывается наружу — изолирована в Docker-сети.
+
+---
+
+## Запуск в режиме разработки
+
+**Backend** (требует запущенный PostgreSQL):
+```bash
+cd backend
+python -m venv .venv && .\.venv\Scripts\Activate.ps1   # Windows
+pip install -r requirements.txt
+alembic upgrade head
+uvicorn app.main:app --reload --port 8000
+```
+
+**Frontend**:
+```bash
+cd frontend
+npm install
+npm run dev   # http://localhost:5173
+```
+
+---
+
+## Структура проекта
+
+```
+interface-generator/
+├── backend/
+│   ├── app/
+│   │   ├── api/          # FastAPI роуты
+│   │   ├── db/           # SQLAlchemy модели, сессия
+│   │   ├── schemas/      # Pydantic схемы
+│   │   ├── services/     # NLP, AMI, Template, CSS, Validator, LLM Client
+│   │   └── templates/    # Jinja2 шаблоны (Atomic Design: atoms/molecules/organisms)
+│   ├── alembic/          # Миграции БД
+│   ├── tests/            # 76 тестов (pytest)
+│   ├── Dockerfile
+│   └── requirements.txt
+├── frontend/
+│   ├── src/
+│   │   ├── components/   # ChatInterface, PreviewPanel, ChatHistory, ChatInput
+│   │   └── api.ts        # HTTP-клиент (VITE_API_BASE_URL)
+│   ├── Dockerfile
+│   └── package.json
+├── nginx/
+│   └── nginx.conf        # Reverse proxy /api/ + SPA fallback
+├── docker-compose.yml
+├── .env.docker.example
+└── README.md
+```
+
+---
+
+## Технологии
+
+| Слой | Технология | Версия |
+|---|---|---|
+| Frontend | React + TypeScript + Vite | React 19, Vite 8 |
+| Стили | Tailwind CSS | 4.x |
+| Backend | FastAPI + Uvicorn | 0.104 / 0.24 |
+| ORM | SQLAlchemy async + asyncpg | 2.0 / 0.31 |
+| Миграции | Alembic + psycopg2-binary | 1.13 / 2.9 |
+| БД | PostgreSQL | 15-alpine |
+| LLM | GigaChat / OpenAI-compatible (mock default) | — |
+| Прокси | nginx | alpine |
+| Тесты | pytest + pytest-asyncio + pytest-httpx | 76 тестов |
