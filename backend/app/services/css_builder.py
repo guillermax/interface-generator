@@ -88,10 +88,6 @@ DEFAULT_STYLES = {
 .login-form__fields {
     display: flex;
     flex-direction: column;
-}
-/* Градиент применяется только к фону формы входа */
-body:has(.login-form), body:has(.registration-form) {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }""",
 
     "image_slider": """.image-slider {
@@ -296,7 +292,65 @@ body:has(.login-form), body:has(.registration-form) {
     gap: 1.5rem;
     padding: 1.5rem;
 }""",
+
+    "hero": """.hero {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 5rem 2rem;
+    text-align: center;
+    width: 100%;
 }
+.hero__inner {
+    max-width: 800px;
+    margin: 0 auto;
+}
+.hero__title {
+    font-size: 3rem;
+    margin: 0 0 1rem 0;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+}
+.hero__subtitle {
+    font-size: 1.25rem;
+    margin: 0 0 2.5rem 0;
+    opacity: 0.9;
+    line-height: 1.6;
+}
+.hero__cta {
+    display: inline-block;
+    background: white;
+    color: #667eea;
+    padding: 0.875rem 2.5rem;
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: 1.1rem;
+    font-weight: 600;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.hero__cta:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+}""",
+
+    "features": """.features {
+    padding: 4rem 2rem;
+    background: white;
+}
+.features__grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+    max-width: 1100px;
+    margin: 0 auto;
+}""",
+}
+
+
+# Applied only when the page contains a single root component (isolated form).
+_LOGIN_GRADIENT = """body:has(.login-form), body:has(.registration-form) {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}"""
 
 
 BASE_STYLES = """* { box-sizing: border-box; }
@@ -314,10 +368,14 @@ body {
 MEDIA_QUERIES = """
 @media (max-width: 1280px) {
     body { padding: 1rem; }
+    .hero__title { font-size: 2.25rem; }
 }
 @media (max-width: 768px) {
     .card-grid__container { grid-template-columns: repeat(2, 1fr); }
     .login-form, .registration-form { padding: 1.5rem; }
+    .features__grid { grid-template-columns: 1fr; }
+    .hero { padding: 3rem 1.5rem; }
+    .hero__title { font-size: 1.75rem; }
 }
 @media (max-width: 320px) {
     .card-grid__container { grid-template-columns: 1fr; }
@@ -340,9 +398,11 @@ class CSSBuilder:
         Возвращает:
             строку с CSS-кодом
         """
-        used_types = set()
+        used_types: set[str] = set()
         for node in graph.components:
             self._collect_types(node, used_types)
+
+        single_root = len(graph.components) == 1
 
         rules = [BASE_STYLES]
 
@@ -351,6 +411,11 @@ class CSSBuilder:
             style = DEFAULT_STYLES.get(snake)
             if style:
                 rules.append(style)
+
+        # Gradient only for single-component pages (e.g. isolated login form).
+        # Multi-root pages (full pages) keep the neutral #f5f5f7 background.
+        if single_root and used_types & {"LoginForm", "RegistrationForm"}:
+            rules.append(_LOGIN_GRADIENT)
 
         rules.append(MEDIA_QUERIES)
 

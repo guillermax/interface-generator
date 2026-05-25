@@ -83,6 +83,30 @@ class TestNLPModule:
             for e in entities
         )
 
+    def test_landing_page_recognition(self):
+        """'лендинг' → page pattern returns Header, Hero, Footer."""
+        entities = self.nlp.predict("лендинг")
+        types = {e.entity_type for e in entities}
+        assert "Header" in types
+        assert "Hero" in types
+        assert "Footer" in types
+
+    def test_ecommerce_page_recognition(self):
+        """'интернет-магазин' → page pattern returns Header, SearchBar, CardGrid, Footer."""
+        entities = self.nlp.predict("интернет-магазин")
+        types = {e.entity_type for e in entities}
+        assert "Header" in types
+        assert "SearchBar" in types
+        assert "CardGrid" in types
+        assert "Footer" in types
+
+    def test_multiple_components_in_one_request(self):
+        """'навигационное меню и форма входа' → both Nav and LoginForm returned."""
+        entities = self.nlp.predict("навигационное меню и форма входа")
+        types = {e.entity_type for e in entities}
+        assert "Nav" in types
+        assert "LoginForm" in types
+
     def test_unknown_text_recognition(self):
         """Тестирует обработку неизвестного текста"""
         text = "Какой-то случайный текст"
