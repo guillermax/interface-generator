@@ -11,6 +11,25 @@ class Base(DeclarativeBase):
     pass
 
 
+class Conversation(Base):
+    __tablename__ = "conversations"
+
+    conversation_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=False), nullable=False, server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=False), nullable=False, server_default=func.now()
+    )
+
+    requests: Mapped[list["Request"]] = relationship(
+        back_populates="conversation", cascade="all, delete-orphan"
+    )
+
+
 class Request(Base):
     __tablename__ = "requests"
 
@@ -23,9 +42,17 @@ class Request(Base):
     )
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")
     nlp_result: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    conversation_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("conversations.conversation_id", ondelete="CASCADE"),
+        nullable=True,
+    )
 
     results: Mapped[list["GenerationResult"]] = relationship(
         back_populates="request", cascade="all, delete-orphan"
+    )
+    conversation: Mapped[Optional["Conversation"]] = relationship(
+        back_populates="requests"
     )
 
 

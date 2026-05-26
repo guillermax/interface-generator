@@ -2,13 +2,19 @@ import { useEffect, useRef, useState } from 'react'
 import ChatHistory from './ChatHistory'
 import ChatInput from './ChatInput'
 import PreviewPanel from './PreviewPanel'
-import type { FullResult, HistoryItem, Message } from '../types'
-import { generateInterface, getHistory, getHistoryItem } from '../api'
+import type { ConversationItem, Message } from '../types'
+import {
+  deleteConversation,
+  generateInterface,
+  getConversationMessages,
+  getConversations,
+} from '../api'
 
 export default function ChatInterface() {
   const [messages, setMessages] = useState<Message[]>([])
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null)
-  const [dbHistory, setDbHistory] = useState<HistoryItem[]>([])
+  const [conversations, setConversations] = useState<ConversationItem[]>([])
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -16,40 +22,71 @@ export default function ChatInterface() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
 
-  const loadHistory = async () => {
+  const loadConversations = async () => {
     try {
-      const items = await getHistory()
-      setDbHistory(items)
+      const items = await getConversations()
+      setConversations(items)
     } catch {
-      // history is non-critical
+      // non-critical
     }
   }
 
   useEffect(() => {
-    loadHistory()
+    loadConversations()
   }, [])
 
   useEffect(() => {
     scrollToBottom()
   }, [messages, isGenerating])
 
-  const handleSelectHistoryItem = async (item: HistoryItem) => {
+  const handleNewChat = () => {
+    setMessages([])
+    setSelectedMessage(null)
+    setCurrentConversationId(null)
+  }
+
+  const handleSelectConversation = async (conversationId: string) => {
+    setCurrentConversationId(conversationId)
     try {
-      const full: FullResult = await getHistoryItem(item.request_id)
-      const msg: Message = {
-        id: item.request_id,
-        text: `«${item.text}» — сгенерировано за ${full.generation_time_ms ?? '?'} мс`,
-        role: 'assistant',
-        timestamp: new Date(item.created_at),
-        preview: { html: full.html, css: full.css },
+      const msgs = await getConversationMessages(conversationId)
+      const rebuilt: Message[] = []
+      for (const m of msgs) {
+        rebuilt.push({
+          id: `user-${m.request_id}`,
+          text: m.text,
+          role: 'user',
+          timestamp: new Date(m.created_at),
+        })
+        if (m.html && m.css) {
+          rebuilt.push({
+            id: m.request_id,
+            text: `Интерфейс сгенерирован за ${m.generation_time_ms ?? '?'} мс`,
+            role: 'assistant',
+            timestamp: new Date(m.created_at),
+            preview: { html: m.html, css: m.css },
+          })
+        }
       }
-      setSelectedMessage(msg)
+      setMessages(rebuilt)
+      const lastWithPreview = [...rebuilt].reverse().find(m => m.preview)
+      setSelectedMessage(lastWithPreview ?? null)
     } catch {
       // ignore
     }
   }
 
-  // Returns Promise so ChatInput can await it for loading-state management
+  const handleDeleteConversation = async (conversationId: string) => {
+    try {
+      await deleteConversation(conversationId)
+      setConversations(prev => prev.filter(c => c.conversation_id !== conversationId))
+      if (currentConversationId === conversationId) {
+        handleNewChat()
+      }
+    } catch {
+      // ignore
+    }
+  }
+
   const handleSendMessage = async (text: string): Promise<void> => {
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -61,7 +98,7 @@ export default function ChatInterface() {
     setIsGenerating(true)
 
     try {
-      const result = await generateInterface(text)
+      const result = await generateInterface(text, currentConversationId ?? undefined)
       const assistantMessage: Message = {
         id: result.request_id,
         text: `Интерфейс сгенерирован за ${result.generation_time_ms} мс`,
@@ -71,7 +108,8 @@ export default function ChatInterface() {
       }
       setMessages(prev => [...prev, assistantMessage])
       setSelectedMessage(assistantMessage)
-      await loadHistory()
+      setCurrentConversationId(result.conversation_id)
+      await loadConversations()
     } catch (err) {
       const isNetworkError = err instanceof TypeError && err.message.includes('fetch')
       const errorMessage: Message = {
@@ -89,21 +127,21 @@ export default function ChatInterface() {
   }
 
   return (
-    // overflow-hidden предотвращает горизонтальный скролл на уровне layout
     <div className="flex w-full h-full bg-gray-50 overflow-hidden">
 
-      {/* Левая колонка — история. shrink-0 держит фиксированную ширину */}
-      <div className="shrink-0">
+      {/* Левая колонка — история чатов */}
+      <div className="shrink-0 self-stretch">
         <ChatHistory
-          messages={messages}
+          conversations={conversations}
+          activeConversationId={currentConversationId}
+          onSelectConversation={handleSelectConversation}
+          onDeleteConversation={handleDeleteConversation}
+          onNewChat={handleNewChat}
           selectedMessage={selectedMessage}
-          onSelectMessage={setSelectedMessage}
-          dbHistory={dbHistory}
-          onSelectHistoryItem={handleSelectHistoryItem}
         />
       </div>
 
-      {/* Средняя колонка — чат. min-w-0 позволяет сжиматься ниже содержимого */}
+      {/* Средняя колонка — чат */}
       <div className="flex-1 flex flex-col min-w-0">
         <div className="flex-1 overflow-y-auto p-6">
           {messages.length === 0 && !isGenerating ? (
@@ -177,7 +215,7 @@ export default function ChatInterface() {
         <ChatInput onSendMessage={handleSendMessage} isLoading={isGenerating} />
       </div>
 
-      {/* Правая колонка — превью. min-w-0 не даёт контенту распирать flex */}
+      {/* Правая колонка — превью */}
       {selectedMessage?.preview && (
         <div className="shrink-0 min-w-0">
           <PreviewPanel message={selectedMessage} />

@@ -4,6 +4,7 @@ NLP → AMI Builder → Template Engine (+ LLM Fallback) → CSS Builder → Val
 """
 import logging
 import time
+import uuid
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -24,12 +25,24 @@ _css_builder = CSSBuilder()
 _validator = Validator()
 
 
-async def generate_interface(text: str, db: AsyncSession) -> dict:
+async def generate_interface(
+    text: str, db: AsyncSession, conversation_id: str | None = None
+) -> dict:
     """
     Full async pipeline: NLP → AMI → Template/LLM → CSS → Validate → persist → return.
+    Creates a new conversation if conversation_id is not provided.
     """
     storage = StorageService(db)
-    request_id = await storage.save_request(text)
+
+    if conversation_id is None:
+        conv_id = await storage.create_conversation(text)
+    else:
+        try:
+            conv_id = uuid.UUID(conversation_id)
+        except ValueError:
+            conv_id = await storage.create_conversation(text)
+
+    request_id = await storage.save_request(text, conversation_id=conv_id)
 
     try:
         start = time.perf_counter()
@@ -57,6 +70,7 @@ async def generate_interface(text: str, db: AsyncSession) -> dict:
             nlp_result=nlp_result,
             components_log=components_log,
         )
+        await storage.update_conversation_timestamp(conv_id)
 
         logger.info(
             "Generated interface for '%s' in %dms (%d components)",
@@ -65,6 +79,7 @@ async def generate_interface(text: str, db: AsyncSession) -> dict:
 
         return {
             "request_id": str(request_id),
+            "conversation_id": str(conv_id),
             "html": html,
             "css": css,
             "generation_time_ms": elapsed_ms,

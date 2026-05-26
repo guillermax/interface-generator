@@ -27,3 +27,21 @@ export interface FullResult extends HistoryItem {
   ami_graph: Record<string, unknown> | null
   generation_time_ms: number | null
 }
+
+export interface ConversationItem {
+  conversation_id: string
+  title: string
+  created_at: string
+  updated_at: string
+  message_count: number
+}
+
+export interface ConversationMessage {
+  request_id: string
+  text: string
+  created_at: string
+  status: string
+  html: string | null
+  css: string | null
+  generation_time_ms: number | null
+}

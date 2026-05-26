@@ -6,6 +6,7 @@ from app.services.validator import ValidationIssue
 
 class GenerateRequest(BaseModel):
     text: str = Field(min_length=1, max_length=2000)
+    conversation_id: str | None = None
 
 
 class GenerateResponse(BaseModel):
@@ -13,5 +14,6 @@ class GenerateResponse(BaseModel):
     html: str
     css: str
     generation_time_ms: float
+    conversation_id: str
     ami: AMIGraph | None = None
     validation_issues: list[ValidationIssue] = []
