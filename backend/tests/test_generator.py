@@ -30,7 +30,7 @@ def engine():
 async def clean_db(engine):
     async with engine.begin() as conn:
         await conn.execute(
-            text("TRUNCATE components_log, generation_results, requests RESTART IDENTITY CASCADE")
+            text("TRUNCATE conversations, components_log, generation_results, requests RESTART IDENTITY CASCADE")
         )
 
 
@@ -83,6 +83,43 @@ async def test_login_form_all_components_use_template(db_session: AsyncSession):
     assert len(entries) > 0
     methods = {row[1] for row in entries}
     assert methods == {"template"}
+
+
+async def test_landing_renders_full_page(db_session: AsyncSession):
+    """Landing page pipeline: HTML contains header, hero section, footer."""
+    get_llm_client.cache_clear()
+    os.environ["LLM_MODE"] = "mock"
+
+    result = await generate_interface("лендинг страница", db_session)
+
+    assert result["html"]
+    assert "<header" in result["html"]
+    assert 'class="hero"' in result["html"]
+    assert "<footer" in result["html"]
+
+
+async def test_multiple_roots_compose_correctly(db_session: AsyncSession):
+    """Two components in one request both appear in the single HTML document."""
+    get_llm_client.cache_clear()
+    os.environ["LLM_MODE"] = "mock"
+
+    result = await generate_interface("навигационное меню и форма входа", db_session)
+
+    assert result["html"]
+    assert 'class="nav"' in result["html"]
+    assert "<form" in result["html"]
+
+
+async def test_landing_with_slider_generates_both(db_session: AsyncSession):
+    """Landing + slider: HTML must contain both hero section and image-slider."""
+    get_llm_client.cache_clear()
+    os.environ["LLM_MODE"] = "mock"
+
+    result = await generate_interface("лендинг со слайдером", db_session)
+
+    assert result["html"]
+    assert 'class="hero"' in result["html"]
+    assert 'class="image-slider"' in result["html"]
 
 
 async def test_slider_generates_html(db_session: AsyncSession):

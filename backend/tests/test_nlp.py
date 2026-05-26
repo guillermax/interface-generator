@@ -83,6 +83,50 @@ class TestNLPModule:
             for e in entities
         )
 
+    def test_landing_page_recognition(self):
+        """'лендинг' → page pattern returns Header, Hero, Footer."""
+        entities = self.nlp.predict("лендинг")
+        types = {e.entity_type for e in entities}
+        assert "Header" in types
+        assert "Hero" in types
+        assert "Footer" in types
+
+    def test_ecommerce_page_recognition(self):
+        """'интернет-магазин' → page pattern returns Header, SearchBar, CardGrid, Footer."""
+        entities = self.nlp.predict("интернет-магазин")
+        types = {e.entity_type for e in entities}
+        assert "Header" in types
+        assert "SearchBar" in types
+        assert "CardGrid" in types
+        assert "Footer" in types
+
+    def test_multiple_components_in_one_request(self):
+        """'навигационное меню и форма входа' → both Nav and LoginForm returned."""
+        entities = self.nlp.predict("навигационное меню и форма входа")
+        types = {e.entity_type for e in entities}
+        assert "Nav" in types
+        assert "LoginForm" in types
+
+    def test_landing_with_extra_component(self):
+        """Landing page + extra rule: 'лендинг со слайдером' adds ImageSlider to base structure."""
+        entities = self.nlp.predict("лендинг страница со слайдером")
+        root_types = [e.entity_type for e in entities if e.parent_id is None]
+        assert "Header" in root_types
+        assert "Hero" in root_types
+        assert "Features" in root_types
+        assert "Footer" in root_types
+        assert "ImageSlider" in root_types
+        # Only one Nav (inside Header, not as extra root)
+        assert root_types.count("Nav") == 0
+
+    def test_landing_with_slider_correct_order(self):
+        """'лендинг со слайдером' → Header first, Footer last, ImageSlider in between."""
+        entities = self.nlp.predict("лендинг со слайдером")
+        root_types = [e.entity_type for e in entities if e.parent_id is None]
+        assert root_types[0] == "Header"
+        assert root_types[-1] == "Footer"
+        assert "ImageSlider" in root_types[1:-1]
+
     def test_unknown_text_recognition(self):
         """Тестирует обработку неизвестного текста"""
         text = "Какой-то случайный текст"

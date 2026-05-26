@@ -16,6 +16,8 @@ class AMIBuilder:
         'LoginForm', 'RegistrationForm', 'ProductCard', 'SearchBar', 'NavItem',
         # Organisms
         'Nav', 'Header', 'Footer', 'Sidebar', 'CardGrid',
+        # Page-level organisms (Jinja2 templates)
+        'Hero', 'Features',
         # LLM-only organisms (no Jinja2 template — routed to LLM fallback)
         'ImageSlider', 'Modal', 'Accordion',
         # Generic

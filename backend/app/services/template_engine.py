@@ -38,6 +38,9 @@ COMPONENT_LEVELS: dict[str, str] = {
     "Footer": "organisms",
     "Sidebar": "organisms",
     "CardGrid": "organisms",
+    # Page-level organisms (Jinja2 templates)
+    "Hero": "organisms",
+    "Features": "organisms",
     # LLM-only organisms — no template file, always routed to LLM fallback
     "ImageSlider": "organisms",
     "Modal": "organisms",

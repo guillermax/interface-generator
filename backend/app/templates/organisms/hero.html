@@ -1,0 +1,7 @@
+<section class="hero" role="region" aria-label="Hero section">
+  <div class="hero__inner">
+    <h1 class="hero__title">{{ attrs.title or 'Заголовок страницы' }}</h1>
+    <p class="hero__subtitle">{{ attrs.subtitle or 'Подзаголовок с описанием' }}</p>
+    <a class="hero__cta" href="{{ attrs.cta_href or '#' }}">{{ attrs.cta_label or 'Начать' }}</a>
+  </div>
+</section>
